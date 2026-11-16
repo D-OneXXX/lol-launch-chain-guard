@@ -1,0 +1,74 @@
+name: Bug 报告
+description: 脚本执行结果与预期不符、退出码异常、或加锁后微信/QQ 启动异常
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        提交前请先确认：你已经执行过 `src\lol-chain-probe.bat`，并保留其完整输出。
+        本仓库只处理 `TCLS\wegame_launch.tmp` 这一个标记文件，不涉及游戏本体与反作弊组件。
+
+  - type: input
+    id: os
+    attributes:
+      label: 系统版本
+      description: `winver` 显示的版本，例如 Windows 11 26200
+      placeholder: Windows 11 (Build 26200)
+    validations:
+      required: true
+
+  - type: input
+    id: fs
+    attributes:
+      label: 游戏所在盘的文件系统
+      description: 右键盘符 → 属性 中查看；这是加锁策略的关键变量
+      placeholder: NTFS / exFAT / FAT32
+    validations:
+      required: true
+
+  - type: dropdown
+    id: script
+    attributes:
+      label: 出问题的脚本
+      options:
+        - src\lol-chain-probe.bat（只读探测）
+        - src\lol-chain-lock.bat（写入层）
+    validations:
+      required: true
+
+  - type: input
+    id: exitcode
+    attributes:
+      label: 退出码
+      description: 脚本最后一行的 `EXIT=` 值，或 `echo %ERRORLEVEL%`
+      placeholder: "0 / 10 / 20 / 30 / 40 / 41 / 42 / 43"
+    validations:
+      required: true
+
+  - type: textarea
+    id: output
+    attributes:
+      label: 完整控制台输出
+      description: 直接粘贴，不要截断；如需脱敏请替换用户名与盘符之外的路径
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 预期与实际
+      description: 你期望发生什么，实际发生了什么
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: 确认项
+      options:
+        - label: 我未在管理员权限下执行（管理员会绕过只读位，结果不可作为依据）
+          required: true
+        - label: 我已阅读 README 中的「文件系统分级」章节
+          required: true

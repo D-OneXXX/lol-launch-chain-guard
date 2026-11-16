@@ -1,0 +1,59 @@
+name: checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  bat-sanity:
+    name: bat 文件静态校验
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 校验行尾、编码与关键守卫
+        shell: pwsh
+        run: |
+          $fail = @()
+          $files = Get-ChildItem -Path src -Filter *.bat -File
+          if ($files.Count -eq 0) { $fail += "src/ 下未找到 .bat 文件" }
+
+          foreach ($f in $files) {
+            $bytes = [IO.File]::ReadAllBytes($f.FullName)
+            $text  = [Text.Encoding]::UTF8.GetString($bytes)
+
+            # 1) 不允许 UTF-8 BOM：cmd 会把 BOM 当命令的一部分
+            if ($bytes.Length -ge 3 -and $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF) {
+              $fail += "$($f.Name): 含 UTF-8 BOM"
+            }
+
+            # 2) 必须是 CRLF，LF 单独出现会导致 goto/label 解析异常
+            $lfOnly = ([regex]::Matches($text, "(?<!`r)`n")).Count
+            if ($lfOnly -gt 0) { $fail += "$($f.Name): 存在 $lfOnly 处 LF-only 行尾" }
+
+            Write-Host "$($f.Name): $($bytes.Length) bytes, LF-only=$lfOnly"
+          }
+
+          $lock = 'src\lol-chain-lock.bat'
+          if (Test-Path $lock) {
+            $body = Get-Content $lock -Raw
+            # 3) 写操作必须由 --apply 显式开启，dry-run 分支必须存在
+            foreach ($needle in @('--apply', '--restore', '--purge', 'DRYRUN_ONLY')) {
+              if ($body -notlike "*$needle*") { $fail += "${lock}: 缺少关键标记 $needle" }
+            }
+            # 4) 白名单路径必须精确到 wegame_launch.tmp
+            if ($body -notlike '*wegame_launch.tmp*') { $fail += "${lock}: 未找到白名单目标 wegame_launch.tmp" }
+          } else {
+            $fail += "缺少 $lock"
+          }
+
+          if ($fail.Count -gt 0) {
+            Write-Host "`n校验未通过：" -ForegroundColor Red
+            $fail | ForEach-Object { Write-Host " - $_" -ForegroundColor Red }
+            exit 1
+          }
+          Write-Host "`n全部校验通过" -ForegroundColor Green
