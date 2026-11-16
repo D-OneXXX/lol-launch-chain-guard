@@ -1,14 +1,3 @@
----
-AIGC:
-    Label: "1"
-    ContentProducer: 001191440300708461136T1XGW3
-    ProduceID: 1b41483b86e288ecb79c8a97a78d228d_21d2e385e1a211f189bc525400248c00
-    ReservedCode1: U7d0np4cO9EwypHlL+++dajuSSatMe8p5BlIJzhwmtTKzJMUWYeBlaWzcmy5iLA1yudEKNl4vuhrv1aSwj8uY0Rv2dHNGEhIbZ127Rvbp+h5GkgyTfVWatxyf0FNHlflM2X89R5Z+Vy1+66DFF4WAjHNUvbBMvRObG9puiUlZiFf4B5zYtCFFApL5qg=
-    ContentPropagator: 001191440300708461136T1XGW3
-    PropagateID: 1b41483b86e288ecb79c8a97a78d228d_21d2e385e1a211f189bc525400248c00
-    ReservedCode2: U7d0np4cO9EwypHlL+++dajuSSatMe8p5BlIJzhwmtTKzJMUWYeBlaWzcmy5iLA1yudEKNl4vuhrv1aSwj8uY0Rv2dHNGEhIbZ127Rvbp+h5GkgyTfVWatxyf0FNHlflM2X89R5Z+Vy1+66DFF4WAjHNUvbBMvRObG9puiUlZiFf4B5zYtCFFApL5qg=
----
-
 # LOL Launch Chain Guard
 
 Windows 批处理工具，用于让《英雄联盟》国服保持以**原生 TCLS 登录器**启动，并防止 WeGame 在版本更新后把启动链重新接管回壳内。
@@ -178,6 +167,10 @@ lol-launch-chain-guard/
 │  └─ lol-chain-lock.bat    写入层（dry-run 默认）
 ├─ docs/
 │  └─ DESIGN.md             设计取舍与踩坑记录
+├─ .github/
+│  ├─ ISSUE_TEMPLATE/bug_report.yml
+│  ├─ pull_request_template.md
+│  └─ workflows/checks.yml  bat 行尾 / 编码 / 安全守卫静态校验
 ├─ SECURITY.md
 ├─ CHANGELOG.md
 ├─ LICENSE
@@ -189,4 +182,3 @@ lol-launch-chain-guard/
 ## License
 
 MIT，见 [LICENSE](LICENSE)。
-*（内容由AI生成，仅供参考）*
