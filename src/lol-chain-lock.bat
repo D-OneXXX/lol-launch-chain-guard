@@ -1,7 +1,7 @@
 @echo off
 setlocal EnableExtensions EnableDelayedExpansion
 rem =====================================================================
-rem  lol-chain-lock.bat   ver 2.2
+rem  lol-chain-lock.bat   ver 2.2.1
 rem  Part of LOL Launch Chain Guard. See README before use.
 rem
 rem  WHAT IT DOES (write layer, opt-in only):
@@ -61,12 +61,13 @@ rem    40 = REFUSED_WHITELIST
 rem    41 = NOT_INSTALLED
 rem    42 = DRYRUN_ONLY
 rem    43 = PARTIAL (action failed on at least one step)
+rem    44 = REFUSED_CONFLICT (mutually exclusive switches)
 rem =====================================================================
 
-set "VER=2.2"
-set "MODE=dryrun"
+set "VER=2.2.1"
+set "MODE="
 set "PURGE=NO"
-set "LINKMODE=auto"
+set "LINKMODE="
 set "ROOT="
 set "SRC="
 set "ARG_ROOT="
@@ -79,20 +80,46 @@ set "BACKUP_DIR="
 set "BACKUP_FILE="
 set "ROOT_KEY=default"
 set "LNK_OUT=%TEMP%\lol_chain_guard_link.txt"
+set "CONFLICT="
 
 rem ---------------------------------------------------------------------
 rem STEP 0 - argument parsing (shift loop, supports quoted --root)
 rem ---------------------------------------------------------------------
 :parse
 if "%~1"=="" goto :parse_done
-if /i "%~1"=="--apply"   (set "MODE=apply"   & shift & goto :parse)
-if /i "%~1"=="--restore" (set "MODE=restore" & shift & goto :parse)
+rem Mode-defining switches record a conflict instead of silently overwriting
+rem each other: v2.2.0 let "--apply --relink" fall through to the link-only
+rem branch and skip the lock step entirely.
+if /i "%~1"=="--link-only" (
+    if defined MODE     set "CONFLICT=--link-only vs --!MODE!"
+    if defined LINKMODE set "CONFLICT=--link-only vs another link switch"
+    set "MODE=link"
+    set "LINKMODE=create"
+    shift
+    goto :parse
+)
+if /i "%~1"=="--unlink" (
+    if defined LINKMODE set "CONFLICT=--unlink vs another link switch"
+    set "LINKMODE=delete"
+    shift
+    goto :parse
+)
+if /i "%~1"=="--apply" (
+    if defined MODE set "CONFLICT=--apply vs --!MODE!"
+    set "MODE=apply"
+    shift
+    goto :parse
+)
+if /i "%~1"=="--restore" (
+    if defined MODE set "CONFLICT=--restore vs --!MODE!"
+    set "MODE=restore"
+    shift
+    goto :parse
+)
 if /i "%~1"=="--purge"   (set "PURGE=YES"    & shift & goto :parse)
 if /i "%~1"=="--yes"     (set "PRESET_YES=YES" & shift & goto :parse)
 if /i "%~1"=="--no-link" (set "LINKMODE=off" & shift & goto :parse)
 if /i "%~1"=="--relink"  (set "LINKMODE=force" & shift & goto :parse)
-if /i "%~1"=="--link-only" (set "LINKMODE=create" & set "MODE=link" & shift & goto :parse)
-if /i "%~1"=="--unlink"  (set "LINKMODE=delete" & shift & goto :parse)
 if /i "%~1"=="--help"    goto :usage
 if /i "%~1"=="-h"        goto :usage
 if /i "%~1"=="/?"        goto :usage
@@ -116,6 +143,33 @@ if defined ARG_ROOT (
     set "ARG_ROOT=!ARG_ROOT:"=!"
     if "!ARG_ROOT:~-1!"=="\" set "ARG_ROOT=!ARG_ROOT:~0,-1!"
 )
+
+rem Refuse ambiguous switch combinations before anything is written.
+if defined CONFLICT (
+    echo.
+    echo result=REFUSED_CONFLICT
+    echo detail=!CONFLICT!
+    echo note=--apply / --restore / --link-only / --unlink are mutually exclusive
+    goto :end_44
+)
+if /i "!MODE!"=="link" if /i not "!LINKMODE!"=="create" (
+    echo.
+    echo result=REFUSED_CONFLICT
+    echo detail=--link-only conflicts with !LINKMODE!
+    echo note=run --link-only on its own, or --relink for a forced rebuild
+    goto :end_44
+)
+rem --unlink returns before the lock layer, so pairing it with --apply or
+rem --restore would drop the requested action. Refuse instead of doing half.
+if /i "!LINKMODE!"=="delete" if defined MODE (
+    echo.
+    echo result=REFUSED_CONFLICT
+    echo detail=--unlink vs --!MODE!
+    echo note=--unlink only removes the desktop shortcut; run it on its own
+    goto :end_44
+)
+if not defined MODE set "MODE=dryrun"
+if not defined LINKMODE set "LINKMODE=auto"
 
 echo.
 echo ====== LOL CHAIN LOCK v%VER%  mode=%MODE% purge=%PURGE% link=%LINKMODE% ======
@@ -525,6 +579,8 @@ echo   --unlink            delete the desktop shortcut only
 echo   --restore           undo the lock, restore the backup
 echo   --root "path"       force the install root
 echo.
+echo   --apply / --restore / --link-only / --unlink are mutually exclusive
+echo.
 echo shortcut target: ^<root^>\TCLS\Client.exe (native client, not a folder)
 echo read-only guarantee: without --apply nothing on disk is modified
 goto :end_0
@@ -540,3 +596,5 @@ endlocal & exit /b 41
 endlocal & exit /b 42
 :end_43
 endlocal & exit /b 43
+:end_44
+endlocal & exit /b 44

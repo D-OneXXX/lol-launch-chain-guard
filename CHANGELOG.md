@@ -1,17 +1,18 @@
----
-AIGC:
-    Label: "1"
-    ContentProducer: 001191440300708461136T1XGW3
-    ProduceID: 1b41483b86e288ecb79c8a97a78d228d_782415a5e1a311f1913b525400393706
-    ReservedCode1: tdvFopTVKCp9t3aq7OJWmDKNqrABFKneWbBRNedAoQOLKeHN0MYM18F61Qah1xB9YTf3b1AiYTxmLq2Mm9d6TaARKzUiAFgUzRoDBtJ0rt4O4Z1dH/ICBm4axlsjxE+d2CFFz3PqQ0t4y5OhfAYx8arADV7FIaCDhO8A0fnTcRtiswatdX5LdNOYab0=
-    ContentPropagator: 001191440300708461136T1XGW3
-    PropagateID: 1b41483b86e288ecb79c8a97a78d228d_782415a5e1a311f1913b525400393706
-    ReservedCode2: tdvFopTVKCp9t3aq7OJWmDKNqrABFKneWbBRNedAoQOLKeHN0MYM18F61Qah1xB9YTf3b1AiYTxmLq2Mm9d6TaARKzUiAFgUzRoDBtJ0rt4O4Z1dH/ICBm4axlsjxE+d2CFFz3PqQ0t4y5OhfAYx8arADV7FIaCDhO8A0fnTcRtiswatdX5LdNOYab0=
----
-
-
-
 # Changelog
+
+## v2.2.1 — 2026-11-16
+
+修复两个"参数或文件名与预期不符"的问题。
+
+### 修复
+
+- **参数互斥不再静默降级**：`--apply` / `--restore` / `--link-only` / `--unlink` 互相组合时直接拒绝，输出 `result=REFUSED_CONFLICT` 并返回 44。v2.2.0 里 `--apply --relink` 会先命中链接分支（`LINKMODE=force` → `:do_link_only`），加锁步骤被整段跳过；`--apply --unlink` 同样会只删快捷方式不加锁。
+- **快捷方式只有一个**：统一使用 `英雄联盟(原生客户端).lnk`（括号前不留空格）。v2.2.0 写入的是 `英雄联盟 (原生客户端).lnk`，与原图标并存就成了两个入口。现在创建前会清掉这个旧名残留，`--unlink` 也会一并删除。
+
+### 新增
+
+- 退出码 `44 = REFUSED_CONFLICT`。
+- `--help` 补充互斥说明。
 
 ## v2.2.0 — 2026-11-16
 
@@ -68,5 +69,3 @@ WeGame 与原生快捷启动并存。
 - exFAT 上 `icacls /deny` 返回成功但无实际效果，已按文件系统分支规避。
 - NTFS 分支未完成端到端实机验证。
 - 国际服不支持，2026 起强制经 Riot Client 启动。
-*（内容由AI生成，仅供参考）*
-*（内容由AI生成，仅供参考）*

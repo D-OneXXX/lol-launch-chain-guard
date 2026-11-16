@@ -1,16 +1,3 @@
----
-AIGC:
-    Label: "1"
-    ContentProducer: 001191440300708461136T1XGW3
-    ProduceID: 1b41483b86e288ecb79c8a97a78d228d_7a0c1de7e1a311f189bc525400248c00
-    ReservedCode1: mybomDgOsgLbSVHyUGDpDzJV5Td3lDGKNsH4fPpWgqgDiz+TVhgpenb1vD9ytqjy4gxKdLFgYbeF7rKlwJRbwQFFe6eXV4h6gcJ/61L6iAEqhhnnIdIM6RFMGaEAuLMEYDAXwrnRyvT35wxjdqYEXE0Hay3Mr855X77aBJahsQIDKO2vXbDR+nqKDpI=
-    ContentPropagator: 001191440300708461136T1XGW3
-    PropagateID: 1b41483b86e288ecb79c8a97a78d228d_7a0c1de7e1a311f189bc525400248c00
-    ReservedCode2: mybomDgOsgLbSVHyUGDpDzJV5Td3lDGKNsH4fPpWgqgDiz+TVhgpenb1vD9ytqjy4gxKdLFgYbeF7rKlwJRbwQFFe6eXV4h6gcJ/61L6iAEqhhnnIdIM6RFMGaEAuLMEYDAXwrnRyvT35wxjdqYEXE0Hay3Mr855X77aBJahsQIDKO2vXbDR+nqKDpI=
----
-
-
-
 # 设计说明
 
 记录几个关键取舍，以及踩过的坑。这些结论都来自实机验证，不是推测。
@@ -111,5 +98,3 @@ AIGC:
 - 未在 NTFS 盘上完成端到端实机验证（按设计实现，建议自测）；
 - 未观测到 WeGame 直接改写 `TCLS\Client.exe` 的行为，故未做针对性防护；
 - 无自动监测，更新后需手动复查。
-*（内容由AI生成，仅供参考）*
-*（内容由AI生成，仅供参考）*

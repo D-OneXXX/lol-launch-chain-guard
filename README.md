@@ -1,14 +1,3 @@
----
-AIGC:
-    Label: "1"
-    ContentProducer: 001191440300708461136T1XGW3
-    ProduceID: 1b41483b86e288ecb79c8a97a78d228d_7529c959e1a311f1913b525400393706
-    ReservedCode1: oznGQC8RVUQcp2r80zYp4HU+jyUt/klxKphtRR8/NRECuHnMqkvGISRrAliCyplzWuxWPrAnaGOSIMGb8lD+Q4VFDBts7VUoJgsGsBC9Z4IbU0vMKvdwn/9eoqTnpa90HoaqTGvUdh5hTwzSTEm6smviZVR5/25ayCIUp6tKxewTZunnFM4RsPdnvC8=
-    ContentPropagator: 001191440300708461136T1XGW3
-    PropagateID: 1b41483b86e288ecb79c8a97a78d228d_7529c959e1a311f1913b525400393706
-    ReservedCode2: oznGQC8RVUQcp2r80zYp4HU+jyUt/klxKphtRR8/NRECuHnMqkvGISRrAliCyplzWuxWPrAnaGOSIMGb8lD+Q4VFDBts7VUoJgsGsBC9Z4IbU0vMKvdwn/9eoqTnpa90HoaqTGvUdh5hTwzSTEm6smviZVR5/25ayCIUp6tKxewTZunnFM4RsPdnvC8=
----
-
 # LOL Launch Chain Guard
 
 Windows 批处理工具，用于让《英雄联盟》国服保持以**原生 TCLS 登录器**启动，并防止 WeGame 在版本更新后把启动链重新接管回壳内。
@@ -145,6 +134,7 @@ src\lol-chain-lock.bat --restore
 | 41 | `NOT_INSTALLED` 未定位到有效安装根 |
 | 42 | `DRYRUN_ONLY` 干跑结束，未写入 |
 | 43 | `PARTIAL` 部分步骤失败，可用 `--restore` 回滚 |
+| 44 | `REFUSED_CONFLICT` 参数互斥组合被拒绝，未做任何改动 |
 
 ---
 
@@ -237,4 +227,3 @@ lol-launch-chain-guard/
 ## License
 
 MIT，见 [LICENSE](LICENSE)。
-*（内容由AI生成，仅供参考）*

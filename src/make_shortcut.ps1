@@ -43,21 +43,35 @@ try {
     if (-not $Desktop) { $Desktop = [Environment]::GetFolderPath('Desktop') }
     if (-not $Desktop) { Write-Output 'NO_DESKTOP'; exit 0 }
 
-    $name = [string]([char]0x82F1 + [char]0x96C4 + [char]0x8054 + [char]0x76DF + ' (' +
+    # Canonical name, no space before the bracket. Kept byte-identical across
+    # releases so an upgrade can never leave two icons on the desktop.
+    $name = [string]([char]0x82F1 + [char]0x96C4 + [char]0x8054 + [char]0x76DF + '(' +
                      [char]0x539F + [char]0x751F + [char]0x5BA2 + [char]0x6237 + [char]0x7AEF + ').lnk')
+    # v2.2.0 wrote the same name with an extra space; migrate it away on sight.
+    $legacy = [string]([char]0x82F1 + [char]0x96C4 + [char]0x8054 + [char]0x76DF + ' (' +
+                       [char]0x539F + [char]0x751F + [char]0x5BA2 + [char]0x6237 + [char]0x7AEF + ').lnk')
     $lnk  = Join-Path $Desktop $name
+    $lnkLegacy = Join-Path $Desktop $legacy
     $exe  = Join-Path $r 'TCLS\Client.exe'
 
     if (-not (Test-Path -LiteralPath $exe)) { Write-Output 'TARGET_MISSING'; exit 0 }
 
-    $existed = Test-Path -LiteralPath $lnk
+    $existed       = Test-Path -LiteralPath $lnk
+    $legacyExisted = Test-Path -LiteralPath $lnkLegacy
 
     if ($Action -eq 'delete') {
-        if ($existed) { Remove-Item -LiteralPath $lnk -Force -ErrorAction SilentlyContinue }
-        if (Test-Path -LiteralPath $lnk) { Write-Output 'FAILED' }
-        elseif ($existed) { Write-Output 'REMOVED' }
+        if ($existed)       { Remove-Item -LiteralPath $lnk -Force -ErrorAction SilentlyContinue }
+        if ($legacyExisted) { Remove-Item -LiteralPath $lnkLegacy -Force -ErrorAction SilentlyContinue }
+        if ((Test-Path -LiteralPath $lnk) -or (Test-Path -LiteralPath $lnkLegacy)) { Write-Output 'FAILED' }
+        elseif ($existed -or $legacyExisted) { Write-Output 'REMOVED' }
         else { Write-Output 'ABSENT' }
         exit 0
+    }
+
+    # One icon rule: the space-named leftover is our own v2.2.0 artefact, so it
+    # is removed whenever it is seen, never left next to the canonical icon.
+    if ($legacyExisted) {
+        Remove-Item -LiteralPath $lnkLegacy -Force -ErrorAction SilentlyContinue
     }
 
     $shell = New-Object -ComObject WScript.Shell
