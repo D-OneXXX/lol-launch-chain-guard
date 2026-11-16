@@ -1,3 +1,14 @@
+---
+AIGC:
+    Label: "1"
+    ContentProducer: 001191440300708461136T1XGW3
+    ProduceID: 1b41483b86e288ecb79c8a97a78d228d_7529c959e1a311f1913b525400393706
+    ReservedCode1: oznGQC8RVUQcp2r80zYp4HU+jyUt/klxKphtRR8/NRECuHnMqkvGISRrAliCyplzWuxWPrAnaGOSIMGb8lD+Q4VFDBts7VUoJgsGsBC9Z4IbU0vMKvdwn/9eoqTnpa90HoaqTGvUdh5hTwzSTEm6smviZVR5/25ayCIUp6tKxewTZunnFM4RsPdnvC8=
+    ContentPropagator: 001191440300708461136T1XGW3
+    PropagateID: 1b41483b86e288ecb79c8a97a78d228d_7529c959e1a311f1913b525400393706
+    ReservedCode2: oznGQC8RVUQcp2r80zYp4HU+jyUt/klxKphtRR8/NRECuHnMqkvGISRrAliCyplzWuxWPrAnaGOSIMGb8lD+Q4VFDBts7VUoJgsGsBC9Z4IbU0vMKvdwn/9eoqTnpa90HoaqTGvUdh5hTwzSTEm6smviZVR5/25ayCIUp6tKxewTZunnFM4RsPdnvC8=
+---
+
 # LOL Launch Chain Guard
 
 Windows 批处理工具，用于让《英雄联盟》国服保持以**原生 TCLS 登录器**启动，并防止 WeGame 在版本更新后把启动链重新接管回壳内。
@@ -66,14 +77,34 @@ src\lol-chain-lock.bat --restore
 
 然后把桌面快捷方式指向 `<root>\TCLS\Client.exe`（不是 WeGame，也不是 `Game\League of Legends.exe`）。
 
+`--apply` 会自动完成这一步：在桌面创建名为「英雄联盟 (原生客户端)」的快捷启动，目标 `TCLS\Client.exe`、工作目录为 `TCLS`、图标取自该 exe。已存在同名且目标一致的快捷方式不会重复创建；同名但指向别处时保持原样并提示用 `--relink` 重建。
+
+### 安装路径怎么找
+
+不同机器安装盘符、目录名（`英雄联盟` / `英雄联盟(26)` / 自定义）都不一样，脚本不写死路径，按下列顺序定位，命中即停：
+
+| 顺序 | 定位源 | 说明 |
+| --- | --- | --- |
+| 1 | `--root "<path>"` | 显式指定，最高优先级，支持中文、空格、括号 |
+| 2 | 环境变量 `LOL_ROOT` | 便携 / 绿色安装可预先设置 |
+| 3 | 注册表 `HKCU\SOFTWARE\Tencent\LOL` `InstallPath` | 官方安装器写入，最可靠 |
+| 4 | 桌面、开始菜单、注册表 `App Paths` / `Uninstall` 的 lnk 反查 | 覆盖安装器改过注册表键的情形 |
+| 5 | 全盘扫描各盘符 `\LOL`、`\WeGameApps`、`\Tencent` 等常见父目录 | 兜底，命中白名单即停 |
+
+定位结果会在 `root_source=` 行标明来源，白名单校验不通过则拒绝写入（退出码 40）。
+
 ### 参数
 
 | 参数 | 作用 |
 | --- | --- |
 | 无 | dry-run，仅打印将要执行的动作 |
-| `--apply` | 保留原文件，设置只读位 + 拒绝当前用户写入 |
+| `--apply` | 保留原文件，设置只读位 + 拒绝当前用户写入，并创建原生快捷启动 |
 | `--apply --purge` | 删除原文件后放置 0 字节占位文件，再执行加锁 |
-| `--restore` | 移除 ACL 拒绝项、清除只读位、从备份还原原文件 |
+| `--apply --no-link` | 只加锁，不碰桌面快捷启动 |
+| `--relink` | 强制按当前安装根重建快捷启动 |
+| `--unlink` | 只删除快捷启动，不动锁层 |
+| `--restore` | 移除 ACL 拒绝项、清除只读位、从备份还原原文件（快捷启动保留，需要时配 `--unlink`） |
+| `--root "<path>"` | 强制指定安装根，绕过自动定位 |
 | `--yes` | 跳过交互确认（供脚本 / CI 使用） |
 
 ### 退出码
@@ -130,7 +161,7 @@ src\lol-chain-lock.bat --restore
 
 - **硬白名单**：只接受 `<root>\TCLS\wegame_launch.tmp` 这一精确路径，且要求 `<root>` 下同时存在 `Game\League of Legends.exe` 与 `TCLS\Client.exe`。任何路径参数不匹配、路径含 `..` 直接拒绝（退出码 40）。
 - **拒绝路径穿越**：不接受用户自选目标。
-- **必须先备份**：原始文件复制到 `%LOCALAPPDATA%\LOLChainGuard\backup` 后才允许写操作。
+- **必须先备份**：原始文件复制到 `%LOCALAPPDATA%\LOLChainGuard\backup\<安装根MD5>\wegame_launch.tmp.bak` 后才允许写操作。备份按安装根分片，多台机器 / 多个安装目录共用同一用户配置时不会互相覆盖，`--restore` 也绝不会把别的安装目录的字节写回来。
 - **幂等**：重复执行结果一致，不会叠加或损坏。
 - **可逆**：`--restore` 后 SHA256 与备份一致。
 - **无需提权**：不申请管理员，不修改系统级设置。
@@ -146,6 +177,12 @@ src\lol-chain-lock.bat --restore
 | exFAT 上 `icacls /deny` | 返回 0 但无实际拒绝项 → 判为单层，输出 `SKIPPED_UNSUPPORTED` |
 | `--restore` 完整性 | SHA256 与备份一致，文件 38 字节 |
 | 目视验证 | 双击指向 `TCLS\Client.exe` 的快捷方式，弹出原生 TCLS 登录框，未被 WeGame 接管 |
+| 路径自适应 | 注册表自动定位命中 `D:\LOL\英雄联盟(26)`，`root_source=registry`，退出码 0 |
+| `--root` 中文含空格括号 | `--root "D:\LOL\英雄联盟(26)"` 解析正确，白名单通过 |
+| 快捷启动（隔离环境实跑） | `link=CREATED`，目标 `TCLS\Client.exe`、工作目录 `TCLS`、图标取自 exe |
+| 幂等 | 二次执行 `link=EXISTS_KEPT`、`backup=EXISTS (kept)`，未重写 |
+| `--unlink` / `--restore` | 分别 `link=REMOVED`、`readonly=CLEARED` + `acl_deny=REMOVED`，文件内容回到原始字节 |
+| 备份分片 | 假安装根与真实安装根各自独立备份目录，`--restore` 未串写
 
 ---
 
@@ -182,3 +219,4 @@ lol-launch-chain-guard/
 ## License
 
 MIT，见 [LICENSE](LICENSE)。
+*（内容由AI生成，仅供参考）*

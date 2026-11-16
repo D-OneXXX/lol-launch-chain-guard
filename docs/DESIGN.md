@@ -2,12 +2,14 @@
 AIGC:
     Label: "1"
     ContentProducer: 001191440300708461136T1XGW3
-    ProduceID: 1b41483b86e288ecb79c8a97a78d228d_25eda773e1a211f189bc525400248c00
-    ReservedCode1: fw2Qd+y4NRs0yBfrfyKx0oCCYm/k5zEAT2+Ly5kPiG4ZqhycVzp3XoC5xDw7oFTojSIVWEguMWgXTSllbE4X5xiYhaivfErTtK8TylfeAdyUH3jsqQxICjyGAkDRJZobICbRF0T72z5f/as4QkBB6GgqEzzunhcIus4gVsL8/Nk+4Tf+79FPpkSal/E=
+    ProduceID: 1b41483b86e288ecb79c8a97a78d228d_7a0c1de7e1a311f189bc525400248c00
+    ReservedCode1: mybomDgOsgLbSVHyUGDpDzJV5Td3lDGKNsH4fPpWgqgDiz+TVhgpenb1vD9ytqjy4gxKdLFgYbeF7rKlwJRbwQFFe6eXV4h6gcJ/61L6iAEqhhnnIdIM6RFMGaEAuLMEYDAXwrnRyvT35wxjdqYEXE0Hay3Mr855X77aBJahsQIDKO2vXbDR+nqKDpI=
     ContentPropagator: 001191440300708461136T1XGW3
-    PropagateID: 1b41483b86e288ecb79c8a97a78d228d_25eda773e1a211f189bc525400248c00
-    ReservedCode2: fw2Qd+y4NRs0yBfrfyKx0oCCYm/k5zEAT2+Ly5kPiG4ZqhycVzp3XoC5xDw7oFTojSIVWEguMWgXTSllbE4X5xiYhaivfErTtK8TylfeAdyUH3jsqQxICjyGAkDRJZobICbRF0T72z5f/as4QkBB6GgqEzzunhcIus4gVsL8/Nk+4Tf+79FPpkSal/E=
+    PropagateID: 1b41483b86e288ecb79c8a97a78d228d_7a0c1de7e1a311f189bc525400248c00
+    ReservedCode2: mybomDgOsgLbSVHyUGDpDzJV5Td3lDGKNsH4fPpWgqgDiz+TVhgpenb1vD9ytqjy4gxKdLFgYbeF7rKlwJRbwQFFe6eXV4h6gcJ/61L6iAEqhhnnIdIM6RFMGaEAuLMEYDAXwrnRyvT35wxjdqYEXE0Hay3Mr855X77aBJahsQIDKO2vXbDR+nqKDpI=
 ---
+
+
 
 # 设计说明
 
@@ -54,9 +56,34 @@ AIGC:
 
 仓库命名与文档统一使用 "launch chain guard"、"lock"、"lock the hijack file" 这类描述性说法，避免 "bypass"、"crack"、"破解" 一类词汇。原因很直接：本工具不绕过任何校验，它只是保持一个由官方文件组成的启动入口；用词失准会让项目被误归类，也会误导使用者以为存在额外能力。
 
-## 7. 已知未覆盖
+## 7. 路径发现：为什么不写死盘符
+
+第一版把 `D:\LOL`、`E:\LOL` 之类写进脚本，本质是把自己机器当成全部机器。别的机器上安装盘可能是 `C:`、目录名可能是 `英雄联盟(26)` 也可能是自定义。因此改成五级定位：
+
+1. `--root` 显式参数（最高优先级，用户说了算）；
+2. 环境变量 `LOL_ROOT`（便携安装、集成到别的脚本里时用）；
+3. 注册表 `HKCU\SOFTWARE\Tencent\LOL` 的 `InstallPath`（官方安装器写入，版本目录带序号也跟随变化）；
+4. 快捷方式 / 注册表反查（覆盖注册表键被改、只剩 lnk 的情形）；
+5. 常见父目录扫描（兜底）。
+
+每一级的结果都要过白名单才算数，定位失败不猜、不写。`root_source=` 明确打出来，使用者一眼能看到结论是"猜的"还是"注册表给的"。
+
+## 8. 快捷启动的定位
+
+快捷启动指向的是 `TCLS\Client.exe`，不是 `Game\League of Legends.exe`（那是游戏本体，需已登录态），也不是 WeGame（那是外层壳）。所以 `TargetPath` 取 `TCLS\Client.exe`，`WorkingDirectory` 取 `TCLS`（客户端按相对路径加载自己的资源），`IconLocation` 取该 exe 的第 0 号图标。
+
+快捷方式名称含中文，但脚本必须保持纯 ASCII，因此名称在 PowerShell 一侧用 `[char]0x82F1...` 码点拼出来，.bat 里不出现任何非 ASCII 字符——这样不会因代码页不同而写出乱码文件名。
+
+幂等通过比较已有快捷方式的 `TargetPath` 实现：目标一致 → `EXISTS_KEPT`；不一致 → `EXISTS_DIFFERENT` 并提示 `--relink`，不静默覆盖用户的快捷方式。
+
+## 9. 备份为什么要按安装根分片
+
+备份文件名固定为 `wegame_launch.tmp.bak` 时，两个安装目录（或 `--root` 指向另一台机器的路径）会共用一个备份文件，`--restore` 就可能把别的目录的字节写回来——这是实测中真实触发过的缺陷。改为按安装根小写路径的 MD5 分子目录后，各安装根互不干扰。
+
+## 10. 已知未覆盖
 
 - 未在 NTFS 盘上完成端到端实机验证（按设计实现，建议自测）；
 - 未观测到 WeGame 直接改写 `TCLS\Client.exe` 的行为，故未做针对性防护；
 - 无自动监测，更新后需手动复查。
+*（内容由AI生成，仅供参考）*
 *（内容由AI生成，仅供参考）*
