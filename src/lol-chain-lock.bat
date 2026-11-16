@@ -1,7 +1,7 @@
 @echo off
 setlocal EnableExtensions EnableDelayedExpansion
 rem =====================================================================
-rem  lol-chain-lock.bat   ver 2.1
+rem  lol-chain-lock.bat   ver 2.2
 rem  Part of LOL Launch Chain Guard. See README before use.
 rem
 rem  WHAT IT DOES (write layer, opt-in only):
@@ -25,7 +25,7 @@ rem    lol-chain-lock.bat --apply --yes      skip interactive prompt
 rem                                          (CI / automation only)
 rem    lol-chain-lock.bat --root "<path>"    force install root
 rem
-rem  PORTABILITY (ver 2.1):
+rem  PORTABILITY (ver 2.2):
 rem  The install root is NOT hardcoded. Sources, first hit wins:
 rem    1. --root "<path>"        2. env LOL_ROOT
 rem    3. registry HKCU/HKLM (incl. WOW6432Node) Tencent\LOL
@@ -63,7 +63,7 @@ rem    42 = DRYRUN_ONLY
 rem    43 = PARTIAL (action failed on at least one step)
 rem =====================================================================
 
-set "VER=2.1"
+set "VER=2.2"
 set "MODE=dryrun"
 set "PURGE=NO"
 set "LINKMODE=auto"
@@ -91,6 +91,7 @@ if /i "%~1"=="--purge"   (set "PURGE=YES"    & shift & goto :parse)
 if /i "%~1"=="--yes"     (set "PRESET_YES=YES" & shift & goto :parse)
 if /i "%~1"=="--no-link" (set "LINKMODE=off" & shift & goto :parse)
 if /i "%~1"=="--relink"  (set "LINKMODE=force" & shift & goto :parse)
+if /i "%~1"=="--link-only" (set "LINKMODE=create" & set "MODE=link" & shift & goto :parse)
 if /i "%~1"=="--unlink"  (set "LINKMODE=delete" & shift & goto :parse)
 if /i "%~1"=="--help"    goto :usage
 if /i "%~1"=="-h"        goto :usage
@@ -242,6 +243,16 @@ if /i "!MODE!"=="dryrun" if /i not "!LINKMODE!"=="force" (
 )
 
 rem ---------------------------------------------------------------------
+rem LINK-ONLY - rebuild the native shortcut and touch nothing else.
+rem This is the coexistence path: WeGame keeps working untouched, the user
+rem only gets a second entry point that skips the WeGame shell.
+rem ---------------------------------------------------------------------
+if /i not "!MODE!"=="apply" (
+    if /i "!LINKMODE!"=="force" goto :do_link_only
+    if /i "!LINKMODE!"=="create" goto :do_link_only
+)
+
+rem ---------------------------------------------------------------------
 rem CONFIRM - mandatory single confirmation before any write
 rem ---------------------------------------------------------------------
 echo.
@@ -381,6 +392,26 @@ echo note=shortcut handling done, the lock layer was not touched
 goto :end_0
 
 rem =====================================================================
+:do_link_only
+echo.
+echo mode=LINK_ONLY
+echo install_root=!ROOT!
+echo root_source=!SRC!
+echo ---- creating shortcut ----
+call :make_link
+echo link=!LNK_RESULT!
+echo.
+if "!LINK_WARN!"=="YES" (
+    echo result=OK_LINK_WARN
+    echo note=shortcut could not be created, see link= above
+    goto :end_0
+)
+echo result=OK
+echo note=shortcut ready. WeGame launch path untouched, the lock layer
+echo      was not touched, so both launch methods stay usable.
+goto :end_0
+
+rem =====================================================================
 rem SUBROUTINES
 rem =====================================================================
 
@@ -409,7 +440,15 @@ exit /b 0
 :run_link_ps
 set "LNK_RESULT=FAILED"
 if exist "!LNK_OUT!" del /f /q "!LNK_OUT!" >nul 2>nul
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$a=$env:LOL_LNK_ACTION; $r=$env:LOL_LNK_ROOT; $d=$env:LOL_LNK_DESKTOP; if (-not $d) { $d=[Environment]::GetFolderPath('Desktop') }; if (-not $r) { 'NO_ROOT'; exit 0 }; if (-not $d) { 'NO_DESKTOP'; exit 0 }; $n=[char]0x82F1+[char]0x96C4+[char]0x8054+[char]0x76DF+' ('+[char]0x539F+[char]0x751F+[char]0x5BA2+[char]0x6237+[char]0x7AEF+').lnk'; $p=Join-Path $d $n; $t=Join-Path $r 'TCLS\Client.exe'; if (-not (Test-Path -LiteralPath $t)) { 'TARGET_MISSING'; exit 0 }; $sh=New-Object -ComObject WScript.Shell; $existed=Test-Path -LiteralPath $p; if ($a -eq 'delete') { if ($existed) { Remove-Item -LiteralPath $p -Force -ErrorAction SilentlyContinue }; if (Test-Path -LiteralPath $p) { 'FAILED' } else { if ($existed) { 'REMOVED' } else { 'ABSENT' } }; exit 0 }; $old=''; if ($existed) { try { $old=$sh.CreateShortcut($p).TargetPath } catch { $old='' } }; if ($existed -and $a -eq 'create') { if ($old -and ($old -ieq $t)) { 'EXISTS_KEPT' } else { 'EXISTS_DIFFERENT' }; exit 0 }; try { $s=$sh.CreateShortcut($p); $s.TargetPath=$t; $s.WorkingDirectory=(Split-Path -Parent $t); $s.IconLocation=$t+',0'; $s.Description='League of Legends native client'; $s.Save() } catch { 'FAILED'; exit 0 }; if (Test-Path -LiteralPath $p) { if ($existed) { 'REPLACED' } else { 'CREATED' } } else { 'FAILED' }" > "!LNK_OUT!" 2>nul
+rem Shortcut logic lives in make_shortcut.ps1 next to this script. A single
+rem -Command line this long is fragile in cmd (quoting, length, code page),
+rem so the call is kept short and the PowerShell side stays readable.
+if not exist "%~dp0make_shortcut.ps1" (
+    set "LNK_RESULT=FAILED"
+    echo link_hint=make_shortcut.ps1 not found next to the script
+    exit /b 0
+)
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0make_shortcut.ps1" -Root "!ROOT!" -Action "!LOL_LNK_ACTION!" > "!LNK_OUT!" 2>nul
 if exist "!LNK_OUT!" (
     for /f "usebackq delims=" %%L in ("!LNK_OUT!") do if not "%%L"=="" set "LNK_RESULT=%%L"
     del /f /q "!LNK_OUT!" >nul 2>nul
@@ -481,6 +520,7 @@ echo   --apply             lock the hijack file + create native shortcut
 echo   --apply --purge     delete then place 0-byte stub, then lock
 echo   --apply --no-link   lock only, do not touch the desktop
 echo   --relink            force rebuild the desktop shortcut
+echo   --link-only         coexistence mode: shortcut only, no lock, no prompt
 echo   --unlink            delete the desktop shortcut only
 echo   --restore           undo the lock, restore the backup
 echo   --root "path"       force the install root

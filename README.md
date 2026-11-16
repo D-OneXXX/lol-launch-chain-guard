@@ -40,6 +40,24 @@ Windows 批处理工具，用于让《英雄联盟》国服保持以**原生 TCL
 
 ---
 
+## 两种启动方式并存（推荐用法）
+
+目标形态：**想用 WeGame 就点 WeGame，想免壳就点原生快捷方式，两个入口都能长期用。**
+
+| 你想要的 | 命令 | 写盘范围 |
+| --- | --- | --- |
+| 只加一个原生入口，WeGame 链路一点不动 | `lol-chain-lock.bat --link-only` | 仅桌面一个 `.lnk`（创建或校验） |
+| 加入口 + 锁住劫持文件 | `lol-chain-lock.bat --apply` | 备份、只读位、ACL deny、桌面 `.lnk` |
+| 取消介入 | `lol-chain-lock.bat --restore`（还原文件）/ `--unlink`（删入口） | 各自只回退对应部分 |
+
+- `--link-only` 不读、不写 `TCLS\wegame_launch.tmp`，不弹确认、不需要管理员，可反复执行：目标正确时输出 `link=EXISTS_KEPT`，不会重复覆盖。
+- 快捷启动名固定为「英雄联盟 (原生客户端)」，目标 `<root>\TCLS\Client.exe`，工作目录 `TCLS`。
+- **加锁与共存是两种取向**：`--apply` 之后，WeGame 若依赖写 `wegame_launch.tmp` 才能启动，会被挡住；本工具不保证加锁后 WeGame 仍能启动。要两套入口长期并存，用 `--link-only`。
+- 大版本更新前建议先 `--restore`；`--link-only` 不涉及文件权限，更新前后都可随时重跑以修正版本目录变化。
+- 快捷方式逻辑独立在 `src/make_shortcut.ps1`（单文件、纯 ASCII），由 bat 以 `-File` 调用，避免超长 `-Command` 在 cmd 下被引号/代码页破坏。
+
+---
+
 ## 原理
 
 启动链实际有三层：

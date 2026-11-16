@@ -13,6 +13,21 @@ AIGC:
 
 # Changelog
 
+## v2.2.0 — 2026-11-16
+
+WeGame 与原生快捷启动并存。
+
+### Added
+- **`--link-only`**：只创建/校验桌面原生快捷启动，不备份、不设只读、不加 ACL，完全不触碰 `TCLS\wegame_launch.tmp`，WeGame 启动链路保持原样。不需要确认，幂等（目标一致输出 `EXISTS_KEPT`）。
+- `src/make_shortcut.ps1`：快捷方式逻辑从 bat 内联单行 `-Command` 抽出为独立脚本，bat 以 `-File` 调用；`-Root` 为空或路径不存在时自动回退注册表（Unicode 安全）读取安装根。
+
+### Fixed
+- `--link-only` 在 cmd 中稳定可用：此前 1.3 KB 的内联 `-Command` 从 bat 内执行会静默失败（`link=FAILED`），改为 `-File` 调用后实跑 `REPLACED` / `CREATED` / `EXISTS_KEPT` 均正常。
+- `--link-only` 改为独立 `mode=link`，不再借用 dry-run 标志；`root_source` 变量名错误导致输出为空。
+
+### Changed
+- `--link-only` 与 `--apply` 的定位说明写入 README：加锁与双入口并存是两种取向，要两套入口长期可用请用 `--link-only`。
+
 ## v2.1.0 — 2026-11-16
 
 跨机器可用性 + 原生快捷启动。
